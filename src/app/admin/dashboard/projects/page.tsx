@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 
 interface Project {
   id: string;
@@ -20,7 +19,6 @@ export default function AdminProjects() {
   const [search, setSearch] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     loadProjects();

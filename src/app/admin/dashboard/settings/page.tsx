@@ -1,12 +1,10 @@
 "use client";
 
 import { useEffect, useState, FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { SiteSettings } from "@/lib/settings-api";
 
 export default function SettingsPage() {
-  const router = useRouter();
   const [formData, setFormData] = useState({
     siteName: "",
     jobTitle: "",
