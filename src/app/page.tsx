@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProjectCard from "@/components/ProjectCard";
+import TechIcon from "@/components/TechIcon";
 import ContactForm from "@/components/ContactForm";
 import { useSettings } from "@/components/SettingsProvider";
 
@@ -23,27 +25,19 @@ interface Project {
 export default function Home() {
   const { settings } = useSettings();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [activeCategory, setActiveCategory] = useState("all");
   const [loading, setLoading] = useState(true);
 
-  const categories = settings.categories.length > 0
-    ? ["all", ...settings.categories]
-    : ["all"];
-
   useEffect(() => {
-    loadProjects("all");
+    loadFeaturedProjects();
   }, []);
 
-  async function loadProjects(category: string) {
+  async function loadFeaturedProjects() {
     setLoading(true);
     try {
-      const url =
-        category === "all"
-          ? "/api/projects"
-          : `/api/projects?category=${category}`;
-      const res = await fetch(url);
+      const res = await fetch("/api/projects?featured=true");
       if (res.ok) {
-        setProjects(await res.json());
+        const data = await res.json();
+        setProjects(data.projects || []);
       }
     } catch (err) {
       console.error("Failed to load projects:", err);
@@ -52,14 +46,18 @@ export default function Home() {
     }
   }
 
-  const handleCategoryChange = (category: string) => {
-    setActiveCategory(category);
-    loadProjects(category);
-  };
-
   const heroParts = settings.heroTagline.split(
     new RegExp(`(${settings.heroHighlight.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "i")
   );
+
+  const groupedSkills = settings.skills.reduce<Record<string, typeof settings.skills>>((acc, skill) => {
+    const cat = skill.category || "Other";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(skill);
+    return acc;
+  }, {});
+
+  const categoryOrder = ["Languages", "Frontend", "Backend", "Database", "DevOps", "AI & LLMs", "Other"];
 
   return (
     <>
@@ -137,7 +135,7 @@ export default function Home() {
               <div className="flex items-center justify-center gap-8 sm:gap-16 mt-16">
                 <div className="text-center">
                   <p className="text-3xl sm:text-4xl font-bold gradient-text">{projects.length}</p>
-                  <p className="text-sm text-text-muted mt-1">Projects</p>
+                  <p className="text-sm text-text-muted mt-1">Featured Projects</p>
                 </div>
                 <div className="w-px h-12 bg-white/10" />
                 <div className="text-center">
@@ -164,7 +162,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Projects Section */}
+        {/* Featured Projects Section */}
         <section id="projects" className="py-20 lg:py-32 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
@@ -175,30 +173,13 @@ export default function Home() {
                 Featured Projects
               </h2>
               <p className="text-text-secondary max-w-xl mx-auto">
-                A collection of projects I&apos;ve worked on, ranging from web apps
-                to AI-powered solutions.
+                A selection of my standout projects. View all projects for the complete portfolio.
               </p>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-2 mb-10">
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => handleCategoryChange(cat)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                    activeCategory === cat
-                      ? "bg-primary text-white shadow-lg shadow-primary/25"
-                      : "bg-white/5 text-text-secondary hover:text-text-primary hover:bg-white/10 border border-white/5"
-                  }`}
-                >
-                  {cat === "all" ? "All Projects" : cat}
-                </button>
-              ))}
             </div>
 
             {loading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
+                {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
                     className="rounded-2xl bg-surface-light/50 border border-white/5 overflow-hidden animate-pulse"
@@ -223,14 +204,27 @@ export default function Home() {
                 <svg className="w-16 h-16 text-text-muted/20 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                <p className="text-text-muted">No projects in this category yet.</p>
+                <p className="text-text-muted">No featured projects yet.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {projects.map((project, index) => (
-                  <ProjectCard key={project.id} {...project} index={index} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {projects.map((project, index) => (
+                    <ProjectCard key={project.id} {...project} index={index} />
+                  ))}
+                </div>
+                <div className="text-center mt-10">
+                  <Link
+                    href="/projects"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary/10 text-primary border border-primary/20 text-sm font-medium hover:bg-primary/20 transition-all duration-300"
+                  >
+                    View All Projects
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </Link>
+                </div>
+              </>
             )}
           </div>
         </section>
@@ -255,23 +249,35 @@ export default function Home() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                {settings.skills.map((skill, i) => (
+              <div className="space-y-8">
+                {categoryOrder.filter(cat => groupedSkills[cat]).map((category, catIndex) => (
                   <div
-                    key={skill.name}
-                    className="group relative rounded-2xl border border-white/5 bg-surface-light/50 p-5 text-center
-                               hover:border-primary/30 hover:bg-surface-light/80 transition-all duration-500"
-                    style={{
-                      animation: `slideUp 0.5s ease-out ${i * 0.05}s forwards`,
-                      opacity: 0,
-                    }}
+                    key={category}
+                    className="animate-fade-in"
+                    style={{ animationDelay: `${catIndex * 0.1}s` }}
                   >
-                    <span className="text-3xl block mb-2 group-hover:scale-110 transition-transform duration-300">
-                      {skill.icon}
-                    </span>
-                    <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors">
-                      {skill.name}
-                    </span>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-secondary/30 to-transparent" />
+                      <h3 className="text-sm font-semibold text-secondary uppercase tracking-widest">{category}</h3>
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-secondary/30 to-transparent" />
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-3">
+                      {groupedSkills[category].map((skill, i) => (
+                        <div
+                          key={skill.name}
+                          className="group relative flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-white/5 bg-surface-light/50 hover:border-primary/30 hover:bg-surface-light/80 transition-all duration-500"
+                          style={{
+                            animation: `slideUp 0.4s ease-out ${i * 0.03}s forwards`,
+                            opacity: 0,
+                          }}
+                        >
+                          <TechIcon name={skill.icon} className="w-5 h-5 text-primary/80 group-hover:text-primary transition-colors" />
+                          <span className="text-sm text-text-secondary group-hover:text-text-primary transition-colors whitespace-nowrap">
+                            {skill.name}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -300,12 +306,10 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-              {/* Contact Form */}
               <div className="lg:col-span-3 glass rounded-2xl p-6 sm:p-8">
                 <ContactForm />
               </div>
 
-              {/* Contact Info */}
               <div className="lg:col-span-2 space-y-4">
                 {settings.email && (
                   <a

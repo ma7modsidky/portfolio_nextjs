@@ -28,7 +28,8 @@ export default function AdminProjects() {
     try {
       const res = await fetch("/api/projects");
       if (res.ok) {
-        setProjects(await res.json());
+        const data = await res.json();
+        setProjects(Array.isArray(data) ? data : data.projects);
       }
     } catch (err) {
       console.error("Failed to load projects:", err);

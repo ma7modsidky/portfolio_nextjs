@@ -3,6 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { isAuthenticated } from "@/lib/auth";
 import { defaultSkills } from "@/lib/settings-api";
 
+function migrateSkill(skill: Record<string, unknown>): Record<string, unknown> {
+  const hasCategory = typeof skill.category === "string" && skill.category.length > 0;
+  const isEmoji = typeof skill.icon === "string" && skill.icon.length <= 2 && /[^\x00-\x7F]/.test(skill.icon);
+
+  if (hasCategory && !isEmoji) return skill;
+
+  const match = defaultSkills.find(s => s.name === skill.name);
+  if (match) return { ...match };
+
+  if (isEmoji) return { ...skill, category: "Other" };
+
+  return skill;
+}
+
 export async function GET() {
   try {
     let settings = await prisma.settings.findUnique({
@@ -16,6 +30,16 @@ export async function GET() {
           skills: JSON.stringify(defaultSkills),
         },
       });
+    } else {
+      const skills = JSON.parse(settings.skills) as Record<string, unknown>[];
+      const hasOldFormat = skills.some(s => !s.category || (typeof s.icon === "string" && s.icon.length <= 2 && /[^\x00-\x7F]/.test(s.icon)));
+      if (hasOldFormat) {
+        const migrated = skills.map(migrateSkill);
+        settings = await prisma.settings.update({
+          where: { id: "default" },
+          data: { skills: JSON.stringify(migrated) },
+        });
+      }
     }
 
     return NextResponse.json({
@@ -57,7 +81,11 @@ export async function PUT(request: Request) {
     if (heroHighlight !== undefined) data.heroHighlight = heroHighlight;
     if (experienceStartYear !== undefined) data.experienceStartYear = experienceStartYear;
     if (avatar !== undefined) data.avatar = avatar;
-    if (skills !== undefined) data.skills = JSON.stringify(skills);
+    if (skills !== undefined) {
+      const hasOldFormat = (skills as Record<string, unknown>[]).some(s => !s.category || (typeof s.icon === "string" && s.icon.length <= 2 && /[^\x00-\x7F]/.test(s.icon)));
+      const migrated = hasOldFormat ? (skills as Record<string, unknown>[]).map(migrateSkill) : skills;
+      data.skills = JSON.stringify(migrated);
+    }
     if (categories !== undefined) data.categories = JSON.stringify(categories);
 
     let settings = await prisma.settings.findUnique({

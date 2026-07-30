@@ -34,7 +34,8 @@ export default function AdminDashboard() {
         ]);
 
         if (projectsRes.ok && messagesRes.ok) {
-          const projects: Project[] = await projectsRes.json();
+          const projectsData = await projectsRes.json();
+          const projects: Project[] = Array.isArray(projectsData) ? projectsData : projectsData.projects;
           const messages: Message[] = await messagesRes.json();
 
           setStats({

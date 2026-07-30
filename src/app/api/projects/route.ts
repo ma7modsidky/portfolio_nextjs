@@ -8,6 +8,9 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const slug = searchParams.get("slug");
+    const featured = searchParams.get("featured");
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "0", 10);
 
     if (slug) {
       const project = await prisma.project.findUnique({
@@ -28,12 +31,34 @@ export async function GET(request: Request) {
       });
     }
 
-    const where = category && category !== "all" ? { category } : {};
+    const where: Record<string, unknown> = {};
 
-    const projects = await prisma.project.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-    });
+    if (category && category !== "all") {
+      where.category = category;
+    }
+
+    if (featured === "true") {
+      where.featured = true;
+    }
+
+    const total = await prisma.project.count({ where });
+
+    let projects;
+
+    if (limit > 0) {
+      const skip = (page - 1) * limit;
+      projects = await prisma.project.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      });
+    } else {
+      projects = await prisma.project.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+      });
+    }
 
     const parsed = projects.map((p: Project) => ({
       ...p,
@@ -41,7 +66,12 @@ export async function GET(request: Request) {
       screenshots: JSON.parse(p.screenshots),
     }));
 
-    return NextResponse.json(parsed);
+    return NextResponse.json({
+      projects: parsed,
+      total,
+      page: limit > 0 ? page : 1,
+      totalPages: limit > 0 ? Math.ceil(total / limit) : 1,
+    });
   } catch (error) {
     console.error("Error fetching projects:", error);
     return NextResponse.json(
@@ -67,7 +97,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if slug already exists
     const existing = await prisma.project.findUnique({ where: { slug } });
     if (existing) {
       return NextResponse.json(
