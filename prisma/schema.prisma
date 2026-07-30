@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  title           String
+  slug            String   @unique
+  description     String
+  longDescription String   @default("")
+  category        String   @default("Web")
+  techStack       String   @default("[]")
+  screenshots     String   @default("[]")
+  githubUrl       String?
+  liveUrl         String?
+  featured        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("projects")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("messages")
+}
+
+model Settings {
+  id                  String   @id @default("default")
+  siteName            String   @default("Portfolio")
+  jobTitle            String   @default("Full-Stack Developer")
+  bio                 String   @default("A passionate full-stack developer crafting modern web applications with clean code and thoughtful design.")
+  email               String   @default("")
+  phone               String   @default("")
+  githubUrl           String   @default("")
+  linkedInUrl         String   @default("")
+  heroTagline         String   @default("Building Digital Experiences")
+  heroHighlight       String   @default("Digital")
+  experienceStartYear Int      @default(2020)
+  avatar              String   @default("")
+  skills              String   @default("[]")
+  categories          String   @default("[]")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("settings")
+}
